@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import numpy as np
 
 from which_pyqt import PYQT_VER
 if PYQT_VER == 'PYQT5':
@@ -12,7 +13,6 @@ else:
 
 
 import time
-import numpy as np
 from TSPClasses import *
 import heapq
 import itertools
@@ -21,6 +21,7 @@ import itertools
 class TSPSolver:
 	def __init__( self, gui_view ):
 		self._scenario = None
+		self.pq = []
 
 	def setupWithScenario( self, scenario ):
 		self._scenario = scenario
@@ -38,6 +39,7 @@ class TSPSolver:
 	'''
 
 	def defaultRandomTour( self, time_allowance=60.0 ):
+
 		results = {}
 		cities = self._scenario.getCities()
 		ncities = len(cities)
@@ -67,10 +69,6 @@ class TSPSolver:
 		results['pruned'] = None
 		return results
 
-
-	def initial_BSSF_greedy(self):
-		return
-
 	def calculate_lower_bound(self):
 		return
 
@@ -90,8 +88,47 @@ class TSPSolver:
 	'''
 
 	def greedy( self,time_allowance=60.0 ):
-		pass
+		results = {}
+		cities = self._scenario.getCities()
+		# make a set of unvisited cities (using indices)
+		unvisited = set(cities[1:])
+		# start with first city
+		current_city = cities[0]
+		tour = [current_city]
 
+		# run until all cities are visited
+		start_time = time.time()
+		while unvisited and time.time()-start_time < time_allowance:
+			nearest, dist = self.nearest_neighbor(current_city, unvisited)
+			# check if there is no complete path
+			# if no complete path, break out of loop
+			if nearest is None:
+				break
+			tour.append(nearest)
+			unvisited.remove(nearest)
+			current_city = nearest
+
+		end_time = time.time()
+		bssf = TSPSolution(tour)
+
+		results['cost'] = bssf.cost if not unvisited else np.inf
+		results['time'] = end_time - start_time
+		results['count'] = 1 if not unvisited else 0
+		results['soln'] = bssf
+		results['max'] = None
+		results['total'] = None
+		results['pruned'] = None
+		return results
+
+	def nearest_neighbor(self, start_node, unvisited):
+		nearest = None
+		min_distance = np.inf
+		for node in unvisited:
+			dist = start_node.costTo(node)
+			if dist < min_distance:
+				nearest = node
+				min_distance = dist
+		return nearest, min_distance
 
 
 	''' <summary>
@@ -103,11 +140,41 @@ class TSPSolver:
 		max queue size, total number of states created, and number of pruned states.</returns>
 	'''
 
+	def reduce_matrix(self, matrix):
+		cost_to_reduce = 0.0
+
+		return None
+
+	def initial_partial_path(self):
+		pp = PartialPath()
+		pp.level = 0
+		cities = self._scenario.getCities()
+		num_cities = len(cities)
+		matrix = [[None for j in range(num_cities)] for i in range(num_cities)]
+
+		for i in range(num_cities):
+			for j in range(num_cities):
+				if i == j:
+					continue
+				else:
+					matrix[i][j] = cities[i].costTo(cities[j])
+
+		print()
+
 	def branchAndBound( self, time_allowance=60.0 ):
 		# initialize priority queue with partial path consisting of only the starting node
+		self.bssf = self.greedy()['cost']
+		pq = []
+
+		# generate initial partial path
+		initial_pp = self.initial_partial_path()
 
 		# while pq not empty
+		start_time = time.time()
+		while pq and time.time() - start_time < time_allowance:
+
 			# dequeue partial path with lowest cost estimate from pq
+			next_partial_path = min(pq, key=lambda x: x.key)
 
 			# if at the end, if solution < BSSF, update BSSF
 			# prune all partial paths with lower bound < BSSF

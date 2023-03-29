@@ -170,3 +170,15 @@ class City:
 
 		return int(math.ceil(cost * self.MAP_SCALE))
 
+class PartialPath:
+
+	def __init__( self):
+		self.lower_bound = None
+		self.key = None
+		self.ignored_rows = []
+		self.ignored_columns = []
+		self.level = None
+		self.reduced_cost_matrix = None
+
+	def set_key(self):
+		self.key = self.lower_bound + self.level**2
