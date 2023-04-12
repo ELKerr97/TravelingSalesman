@@ -354,5 +354,54 @@ class TSPSolver:
 		algorithm</returns>
 	'''
 
+    # Ant Colony Optimization
     def fancy(self, time_allowance=60.0):
+        # Initialize constants
+        # Influence of pheromone on route selection
+        alpha = 1.0
+        # Influence of distance on route selection
+        beta = 1.0
+        # Pheromone evaporation rate
+        evaporation_rate = 0.5
+        # Pheromone deposit amount
+        q = 1.0
+        # Number of ants used in each iteration
+        num_ants = 10
+        # Number of iterations to find best solution
+        num_iterations = 10
+        # Best solution found so far
+        bssf = None
+        # Best distance found so far
+        bssf_cost = 0
+
+        # Initialize pheromone levels
+        num_cities = len(self._scenario.getCities())
+        pheromone_matrix = [[np.inf] * num_cities for _ in range(num_cities)]
+
+        for i in range(num_cities):
+            for j in range(num_cities):
+                if i == j:
+                    pheromone_matrix[i][j] = np.inf
+                else:
+                    pheromone_matrix[i][j] = random.uniform(0.1, 0.9)
+                    pheromone_matrix[j][i] = pheromone_matrix[i][j]
+
+        # For each iteration
+        for itr in range(num_iterations):
+            # For each ant
+            for ant in range(num_ants):
+                # Start each ant on a random city:
+                cities = list(range(num_cities))
+                ant_tour = [np.random.randint(num_cities)]
+                cities.remove(ant_tour[0])
+                # While there are cities to visit...
+                while cities:
+                    # Calculate probability of all neighboring cities
+                    # Choose city based on that probability
+
+                # Update best route
+            # Reduce pheromone on all edges
+            # Update pheromone matrix based on which ants visited which edge
+
+        # Return best route
         pass
