@@ -358,50 +358,119 @@ class TSPSolver:
     def fancy(self, time_allowance=60.0):
         # Initialize constants
         # Influence of pheromone on route selection
-        alpha = 1.0
+        self.alpha = 1.0
         # Influence of distance on route selection
-        beta = 1.0
+        self.beta = 5.0
         # Pheromone evaporation rate
-        evaporation_rate = 0.5
+        self.evaporation_rate = 0.2
         # Pheromone deposit amount
-        q = 1.0
+        self.q = 1.0
         # Number of ants used in each iteration
-        num_ants = 10
-        # Number of iterations to find best solution
-        num_iterations = 10
+        num_ants = 1000
         # Best solution found so far
         bssf = None
         # Best distance found so far
-        bssf_cost = 0
-
+        bssf_cost = np.inf
+        # number of times bssf was updated
+        count = 0
         # Initialize pheromone levels
         num_cities = len(self._scenario.getCities())
-        pheromone_matrix = [[np.inf] * num_cities for _ in range(num_cities)]
+        self.pheromone_matrix = [[np.inf] * num_cities for _ in range(num_cities)]
+
+        initial_solution = self.greedy()
 
         for i in range(num_cities):
             for j in range(num_cities):
                 if i == j:
-                    pheromone_matrix[i][j] = np.inf
+                    self.pheromone_matrix[i][j] = np.inf
                 else:
-                    pheromone_matrix[i][j] = random.uniform(0.1, 0.9)
-                    pheromone_matrix[j][i] = pheromone_matrix[i][j]
+                    self.pheromone_matrix[i][j] = random.uniform(0.1, 2.0)
+                    self.pheromone_matrix[j][i] = self.pheromone_matrix[i][j]
 
-        # For each iteration
-        for itr in range(num_iterations):
+        path_improved = True
+        start_time = time.time()
+        while path_improved and time.time() - start_time < time_allowance:
+            path_improved = False
+            ants = []
             # For each ant
             for ant in range(num_ants):
                 # Start each ant on a random city:
                 cities = list(range(num_cities))
                 ant_tour = [np.random.randint(num_cities)]
                 cities.remove(ant_tour[0])
+                current_city = ant_tour[-1]
                 # While there are cities to visit...
                 while cities:
-                    # Calculate probability of all neighboring cities
-                    # Choose city based on that probability
+                    best_city = self.best_neighbor(current_city, cities)
+                    # Stop if ant cannot find best route
+                    if best_city == None:
+                        # and could not find complete path
+                        break
+                    ant_tour.append(best_city)
+                    cities.remove(best_city)
+                    current_city = best_city
+                # Update best route if ant has found complete path
+                if not cities:
+                    ant_solution = TSPSolution([self._scenario.getCities()[i] for i in ant_tour])
+                    ants.append(ant_tour)
+                    if ant_solution.cost < bssf_cost:
+                        bssf = ant_solution
+                        bssf_cost = ant_solution.cost
+                        path_improved = True
+                        count += 1
 
-                # Update best route
             # Reduce pheromone on all edges
+            for i in range(len(self.pheromone_matrix)):
+                for j in range(len(self.pheromone_matrix)):
+                    self.pheromone_matrix[i][j] = self.pheromone_matrix[i][j]*(1-self.evaporation_rate)
+                    self.pheromone_matrix[j][i] = self.pheromone_matrix[j][i]*(1-self.evaporation_rate)
+
             # Update pheromone matrix based on which ants visited which edge
+            for ant_tour in ants:
+                cost = TSPSolution([self._scenario.getCities()[i] for i in ant_tour]).cost
+                for i in range(len(ant_tour) - 1):
+                    from_node = ant_tour[i]
+                    to_node = ant_tour[i+1]
+                    if cost == bssf_cost:
+                        # reward the best path to find local optimum faster
+                        self.pheromone_matrix[from_node][to_node] += (1) / cost
+                    else:
+                        self.pheromone_matrix[from_node][to_node] += 1 / cost
 
         # Return best route
-        pass
+        end_time = time.time()
+        results = {}
+        results['count'] = count
+        results['cost'] = bssf_cost
+        results['time'] = end_time - start_time
+        results['soln'] = bssf
+        return results
+
+    def best_neighbor(self, from_index, unvisited):
+        best = None
+        best_probability = 0
+        denominator = 0
+        # calculate the denominator in probability function
+        for to_index in unvisited:
+            if to_index != from_index:
+                from_city = self._scenario.getCities()[from_index]
+                to_city = self._scenario.getCities()[to_index]
+                pheromone_var = pow(self.pheromone_matrix[from_index][to_index],self.alpha)
+                distance_var = pow(from_city.costTo(to_city),self.beta)
+                if distance_var != np.inf:
+                    denominator += pheromone_var*distance_var
+
+        for to_index in unvisited:
+            from_city = self._scenario.getCities()[from_index]
+            to_city = self._scenario.getCities()[to_index]
+            pheromone_var = pow(self.pheromone_matrix[from_index][to_index], self.alpha)
+            distance_var = pow(from_city.costTo(to_city), self.beta)
+            if distance_var != np.inf and denominator != 0.0:
+                numerator = pheromone_var*distance_var
+                probability = numerator/denominator
+                if probability > best_probability:
+                    best_probability = probability
+                    best = to_index
+
+        return best
+# TSPSolution([cities[i] for i in next_partial_path.tour])
