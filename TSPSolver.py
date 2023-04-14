@@ -366,7 +366,7 @@ class TSPSolver:
         # Pheromone deposit amount
         self.q = 1.0
         # Number of ants used in each iteration
-        num_ants = 10000
+        num_ants = 100
         # Best solution found so far
         bssf = None
         # Best distance found so far
@@ -396,7 +396,7 @@ class TSPSolver:
             for ant in range(num_ants):
                 # Start each ant on a random city:
                 cities = list(range(num_cities))
-                ant_tour = [np.random.randint(num_cities)]
+                ant_tour = [0]
                 cities.remove(ant_tour[0])
                 current_city = ant_tour[-1]
                 # While there are cities to visit...
