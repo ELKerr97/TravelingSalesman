@@ -384,7 +384,8 @@ class TSPSolver:
                 if i == j:
                     self.pheromone_matrix[i][j] = np.inf
                 else:
-                    self.pheromone_matrix[i][j] = random.uniform(0.1, 2.0)
+                    # initialize pheromones to small, random values
+                    self.pheromone_matrix[i][j] = random.uniform(0.1, 0.9)
                     self.pheromone_matrix[j][i] = self.pheromone_matrix[i][j]
 
         path_improved = True
