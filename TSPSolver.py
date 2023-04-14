@@ -362,11 +362,11 @@ class TSPSolver:
         # Influence of distance on route selection
         self.beta = 5.0
         # Pheromone evaporation rate
-        self.evaporation_rate = 0.2
+        self.evaporation_rate = 0.1
         # Pheromone deposit amount
         self.q = 1.0
         # Number of ants used in each iteration
-        num_ants = 1000
+        num_ants = 10000
         # Best solution found so far
         bssf = None
         # Best distance found so far
@@ -433,9 +433,12 @@ class TSPSolver:
                     to_node = ant_tour[i+1]
                     if cost == bssf_cost:
                         # reward the best path to find local optimum faster
-                        self.pheromone_matrix[from_node][to_node] += (1) / cost
+                        self.pheromone_matrix[from_node][to_node] += (1 + 0.4) / cost
+                        self.pheromone_matrix[to_node][from_node] += (1 + 0.4) / cost
                     else:
                         self.pheromone_matrix[from_node][to_node] += 1 / cost
+                        self.pheromone_matrix[to_node][from_node] += 1 / cost
+
 
         # Return best route
         end_time = time.time()
@@ -447,30 +450,38 @@ class TSPSolver:
         return results
 
     def best_neighbor(self, from_index, unvisited):
-        best = None
-        best_probability = 0
         denominator = 0
+
         # calculate the denominator in probability function
         for to_index in unvisited:
             if to_index != from_index:
                 from_city = self._scenario.getCities()[from_index]
                 to_city = self._scenario.getCities()[to_index]
                 pheromone_var = pow(self.pheromone_matrix[from_index][to_index],self.alpha)
-                distance_var = pow(from_city.costTo(to_city),self.beta)
+                distance = from_city.costTo(to_city)
+                if distance == np.inf or distance == 0:
+                    break
+                distance_var = pow(1.0/from_city.costTo(to_city),self.beta)
                 if distance_var != np.inf:
-                    denominator += pheromone_var*distance_var
+                    denominator += pheromone_var * distance_var
 
+        choices = []
         for to_index in unvisited:
             from_city = self._scenario.getCities()[from_index]
             to_city = self._scenario.getCities()[to_index]
             pheromone_var = pow(self.pheromone_matrix[from_index][to_index], self.alpha)
-            distance_var = pow(from_city.costTo(to_city), self.beta)
+            distance = from_city.costTo(to_city)
+            if distance == np.inf or distance == 0:
+                break
+            distance_var = pow(1.0/from_city.costTo(to_city), self.beta)
             if distance_var != np.inf and denominator != 0.0:
                 numerator = pheromone_var*distance_var
                 probability = numerator/denominator
-                if probability > best_probability:
-                    best_probability = probability
-                    best = to_index
+                choices.append((to_index, probability))
 
-        return best
-# TSPSolution([cities[i] for i in next_partial_path.tour])
+        # choose a random city with a probability
+        if choices:
+            city = random.choices(population=[city[0] for city in choices], weights=[city[1] for city in choices], k=1)[0]
+            return city
+        else:
+            return None
