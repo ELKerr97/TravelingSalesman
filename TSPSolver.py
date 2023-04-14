@@ -366,7 +366,7 @@ class TSPSolver:
         # Pheromone deposit amount
         self.q = 1.0
         # Number of ants used in each iteration
-        num_ants = 10000
+        num_ants = 100
         # Best solution found so far
         bssf = None
         # Best distance found so far
