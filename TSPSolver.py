@@ -366,18 +366,16 @@ class TSPSolver:
         # Pheromone deposit amount
         self.q = 1.0
         # Number of ants used in each iteration
-        num_ants = 100
+        num_ants = 1000
         # Best solution found so far
-        bssf = None
+        bssf = self.greedy()['soln']
         # Best distance found so far
-        bssf_cost = np.inf
+        bssf_cost = bssf.cost
         # number of times bssf was updated
         count = 0
         # Initialize pheromone levels
         num_cities = len(self._scenario.getCities())
         self.pheromone_matrix = [[np.inf] * num_cities for _ in range(num_cities)]
-
-        initial_solution = self.greedy()
 
         for i in range(num_cities):
             for j in range(num_cities):
@@ -387,9 +385,14 @@ class TSPSolver:
                     self.pheromone_matrix[i][j] = random.uniform(0.1, 2.0)
                     self.pheromone_matrix[j][i] = self.pheromone_matrix[i][j]
 
+        initial_solution = bssf.route
+        for i in range(len(initial_solution) - 1):
+            self.pheromone_matrix[initial_solution[i]._index][initial_solution[i+1]._index] += 0.6
+
         path_improved = True
         start_time = time.time()
-        while path_improved and time.time() - start_time < time_allowance:
+        num_iterations = 100
+        while num_iterations > 0 and time.time() - start_time < time_allowance:
             path_improved = False
             ants = []
             # For each ant
@@ -439,6 +442,8 @@ class TSPSolver:
                     else:
                         self.pheromone_matrix[from_node][to_node] += 1 / cost
                         self.pheromone_matrix[to_node][from_node] += 1 / cost
+
+            num_iterations -= 1
 
 
         # Return best route
