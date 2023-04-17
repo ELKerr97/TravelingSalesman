@@ -358,7 +358,7 @@ class TSPSolver:
     def fancy(self, time_allowance=60.0):
         # Initialize constants
         # Influence of pheromone on route selection
-        self.alpha = 1.0
+        self.alpha = 2.0
         # Influence of distance on route selection
         self.beta = 5.0
         # Pheromone evaporation rate
@@ -366,7 +366,7 @@ class TSPSolver:
         # Pheromone deposit amount
         self.q = 1.0
         # Number of ants used in each iteration
-        num_ants = 1000
+        num_ants = 100
         # Best solution found so far
         bssf = self.greedy()['soln']
         # Best distance found so far
@@ -387,7 +387,7 @@ class TSPSolver:
 
         initial_solution = bssf.route
         for i in range(len(initial_solution) - 1):
-            self.pheromone_matrix[initial_solution[i]._index][initial_solution[i+1]._index] += 0.6
+            self.pheromone_matrix[initial_solution[i]._index][initial_solution[i+1]._index] += 0.2
 
         path_improved = True
         start_time = time.time()
@@ -437,11 +437,11 @@ class TSPSolver:
                     to_node = ant_tour[i+1]
                     if cost == bssf_cost:
                         # reward the best path to find local optimum faster
-                        self.pheromone_matrix[from_node][to_node] += (1 + reward) / cost
-                        self.pheromone_matrix[to_node][from_node] += (1 + reward) / cost
+                        self.pheromone_matrix[from_node][to_node] += (10 / cost) + reward
+                        self.pheromone_matrix[to_node][from_node] += (10 / cost) + reward
                     else:
-                        self.pheromone_matrix[from_node][to_node] += 1 / cost
-                        self.pheromone_matrix[to_node][from_node] += 1 / cost
+                        self.pheromone_matrix[from_node][to_node] += 10 / cost
+                        self.pheromone_matrix[to_node][from_node] += 10 / cost
 
             num_iterations -= 1
 
