@@ -358,15 +358,15 @@ class TSPSolver:
     def fancy(self, time_allowance=60.0):
         # Initialize constants
         # Influence of pheromone on route selection
-        self.alpha = 1.0
+        alpha_vals = [0.0, 2.5, 5.0]
         # Influence of distance on route selection
-        self.beta = 5.0
+        beta_vals = [0.0, 2.5, 5.0]
         # Pheromone evaporation rate
-        self.evaporation_rate = 0.02
+        evaporation_rate_vals = [0.1, 0.4, 0.9]
         # Pheromone deposit amount
-        self.q = 1.0
+        q_vals = [0.2, 0.6, 1.0]
         # Number of ants used in each iteration
-        num_ants = 100
+        n_ants_vals = [10, 250, 500]
         # Best solution found so far
         bssf = self.greedy()['soln']
         # Best distance found so far
@@ -377,69 +377,77 @@ class TSPSolver:
         num_cities = len(self._scenario.getCities())
         self.pheromone_matrix = [[np.inf] * num_cities for _ in range(num_cities)]
 
-        max_tau = 10000 / bssf_cost
-        for i in range(num_cities):
-            for j in range(num_cities):
-                if i == j:
-                    self.pheromone_matrix[i][j] = np.inf
-                else:
-                    self.pheromone_matrix[i][j] = random.uniform(0.1, max_tau)
-                    self.pheromone_matrix[j][i] = self.pheromone_matrix[i][j]
+        max_tau_vals = [0.1, 5, 10]
 
-        path_improved = True
+        combinations = list(itertools.product(n_ants_vals, evaporation_rate_vals, max_tau_vals, q_vals, alpha_vals, beta_vals))
+
         start_time = time.time()
-        num_iterations = 100
-        while num_iterations > 0 and time.time() - start_time < time_allowance:
-            path_improved = False
-            ants = []
-            # For each ant
-            for ant in range(num_ants):
-                # Start each ant on a random city:
-                cities = list(range(num_cities))
-                ant_tour = [np.random.randint(num_cities)]
-                cities.remove(ant_tour[0])
-                current_city = ant_tour[-1]
-                # While there are cities to visit...
-                while cities:
-                    best_city = self.best_neighbor(current_city, cities)
-                    # Stop if ant cannot find best route
-                    if best_city == None:
-                        # and could not find complete path
-                        break
-                    ant_tour.append(best_city)
-                    cities.remove(best_city)
-                    current_city = best_city
-                # Update best route if ant has found complete path
-                if not cities:
-                    ant_solution = TSPSolution([self._scenario.getCities()[i] for i in ant_tour])
-                    ants.append(ant_tour)
-                    if ant_solution.cost < bssf_cost:
-                        bssf = ant_solution
-                        bssf_cost = ant_solution.cost
-                        path_improved = True
-                        count += 1
-            num_iterations -= 1
+        while combinations and time.time() - start_time < time_allowance:
+            for combo in enumerate(combinations):
 
-            # Reduce pheromone on all edges
-            for i in range(len(self.pheromone_matrix)):
-                for j in range(len(self.pheromone_matrix)):
-                    self.pheromone_matrix[i][j] = self.pheromone_matrix[i][j]*(1-self.evaporation_rate)
-                    self.pheromone_matrix[j][i] = self.pheromone_matrix[j][i]*(1-self.evaporation_rate)
+                num_ants, self.evaporation_rate, max_tau, self.q, self.alpha, self.beta = combo[1]
 
-            # Update pheromone matrix based on which ants visited which edge
-            reward = 0.001
-            for ant_tour in ants:
-                cost = TSPSolution([self._scenario.getCities()[i] for i in ant_tour]).cost
-                for i in range(len(ant_tour) - 1):
-                    from_node = ant_tour[i]
-                    to_node = ant_tour[i+1]
-                    if cost == bssf_cost:
-                        # reward the best path to find local optimum faster
-                        self.pheromone_matrix[from_node][to_node] += (10 / cost) + reward
-                        self.pheromone_matrix[to_node][from_node] += (10 / cost) + reward
-                    else:
-                        self.pheromone_matrix[from_node][to_node] += 10 / cost
-                        self.pheromone_matrix[to_node][from_node] += 10 / cost
+                for i in range(num_cities):
+                    for j in range(num_cities):
+                        if i == j:
+                            self.pheromone_matrix[i][j] = np.inf
+                        else:
+                            self.pheromone_matrix[i][j] = random.uniform(0.1, max_tau)
+                            self.pheromone_matrix[j][i] = self.pheromone_matrix[i][j]
+
+                path_improved = True
+                num_iterations = 10
+                while num_iterations > 0 and time.time() - start_time < time_allowance:
+                    path_improved = False
+                    ants = []
+                    # For each ant
+                    for ant in range(num_ants):
+                        # Start each ant on a random city:
+                        cities = list(range(num_cities))
+                        ant_tour = [np.random.randint(num_cities)]
+                        cities.remove(ant_tour[0])
+                        current_city = ant_tour[-1]
+                        # While there are cities to visit...
+                        while cities:
+                            best_city = self.best_neighbor(current_city, cities)
+                            # Stop if ant cannot find best route
+                            if best_city == None:
+                                # and could not find complete path
+                                break
+                            ant_tour.append(best_city)
+                            cities.remove(best_city)
+                            current_city = best_city
+                        # Update best route if ant has found complete path
+                        if not cities:
+                            ant_solution = TSPSolution([self._scenario.getCities()[i] for i in ant_tour])
+                            ants.append(ant_tour)
+                            if ant_solution.cost < bssf_cost:
+                                bssf = ant_solution
+                                bssf_cost = ant_solution.cost
+                                path_improved = True
+                                count += 1
+                    num_iterations -= 1
+
+                    # Reduce pheromone on all edges
+                    for i in range(len(self.pheromone_matrix)):
+                        for j in range(len(self.pheromone_matrix)):
+                            self.pheromone_matrix[i][j] = self.pheromone_matrix[i][j]*(1-self.evaporation_rate)
+                            self.pheromone_matrix[j][i] = self.pheromone_matrix[j][i]*(1-self.evaporation_rate)
+
+                    # Update pheromone matrix based on which ants visited which edge
+                    reward = 0.001
+                    for ant_tour in ants:
+                        cost = TSPSolution([self._scenario.getCities()[i] for i in ant_tour]).cost
+                        for i in range(len(ant_tour) - 1):
+                            from_node = ant_tour[i]
+                            to_node = ant_tour[i+1]
+                            if cost == bssf_cost:
+                                # reward the best path to find local optimum faster
+                                self.pheromone_matrix[from_node][to_node] += (10 / cost) + reward
+                                self.pheromone_matrix[to_node][from_node] += (10 / cost) + reward
+                            else:
+                                self.pheromone_matrix[from_node][to_node] += 10 / cost
+                                self.pheromone_matrix[to_node][from_node] += 10 / cost
 
 
         # Return best route
