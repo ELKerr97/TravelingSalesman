@@ -426,6 +426,7 @@ class TSPSolver:
                     self.pheromone_matrix[j][i] = self.pheromone_matrix[j][i]*(1-self.evaporation_rate)
 
             # Update pheromone matrix based on which ants visited which edge
+            reward = 0.4
             for ant_tour in ants:
                 cost = TSPSolution([self._scenario.getCities()[i] for i in ant_tour]).cost
                 for i in range(len(ant_tour) - 1):
@@ -433,8 +434,8 @@ class TSPSolver:
                     to_node = ant_tour[i+1]
                     if cost == bssf_cost:
                         # reward the best path to find local optimum faster
-                        self.pheromone_matrix[from_node][to_node] += (1 + 0.4) / cost
-                        self.pheromone_matrix[to_node][from_node] += (1 + 0.4) / cost
+                        self.pheromone_matrix[from_node][to_node] += (1 + reward) / cost
+                        self.pheromone_matrix[to_node][from_node] += (1 + reward) / cost
                     else:
                         self.pheromone_matrix[from_node][to_node] += 1 / cost
                         self.pheromone_matrix[to_node][from_node] += 1 / cost
